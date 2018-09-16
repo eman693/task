@@ -16,19 +16,46 @@ class NewsController extends Controller
         $this->empty_object = new \stdClass();
     }
 
-
     /*
     * Get All News
     * parameter : -
     * cases : News found - no news
     * return : if news found return array of objects- if news not fount return empty array
     * /news
+    * if you want to sort by date use localhost:8000/api/news?sortByDate=1
+    * if you want to sort by title use localhost:8000/api/news?sortByTitle=1
+    * if you want to sort by date and title use localhost:8000/api/news?sortByDate=1&sortByTitle=1
+    * if you want to filter by date use localhost:8000/api/news?filterByDate=1978-06-21
+    * if you want to filter by title use localhost:8000/api/news?filterByTitle=e
+    * if you want to filter by date and title use localhost:8000/api/news?filterByDate=1978-06-21&filterByTitle=k
     */
     public function index()
     {
-        $news = News::orderBy('date', 'desc')
-            ->orderBy('title', 'desc')
-            ->get();
+        $sortByDate = $sortByTitle = $filterByDate = $filterByTitle = null;
+
+        if (isset($_GET['sortByDate']) && $_GET['sortByDate'] == 1) {
+            $sortByDate = 'date';
+        }
+        if (isset($_GET['sortByTitle']) && $_GET['sortByTitle'] == 1) {
+            $sortByTitle = 'title';
+        }
+        if (isset($_GET['filterByDate'])){
+            $filterByDate = $_GET['filterByDate'];
+        }
+        if (isset($_GET['filterByTitle'])){
+            $filterByTitle = $_GET['filterByTitle'];
+        }
+        $news = News::when($sortByDate, function ($query, $sortByDate) {
+            return $query->orderBy($sortByDate);
+        })->when($sortByTitle, function ($query, $sortByTitle) {
+            return $query->orderBy($sortByTitle);
+        })->when($filterByDate, function ($query, $filterByDate) {
+            return $query->where('date', 'like', '%' . $filterByDate . '%');
+        })->when($filterByTitle, function ($query, $filterByTitle) {
+            return $query->where('title', 'like', '%' . $filterByTitle . '%');
+        },function ($query) {
+            return $query->orderBy('date');
+        })->get();
 
         return Super::jsonResponse(true, 200, 'News found successfully', [], $news);
     }
@@ -39,12 +66,10 @@ class NewsController extends Controller
      * cases :  news_id found successfully - news_id not found
      * return : if news found return news object - if news not found return empty object
      * /news/show
+     * example : localhost:8000/api/news/show?news_id=5
      */
     public function show(Request $request)
     {
-        if (!$request->isMethod('POST')) {
-            return Super::jsonResponse(false, 405, 'Method Not Allowed', [], $this->empty_object);
-        }
         // Validation area
         $validator = Validator::make($request->all(), [
             'news_id' => 'required|exists:news,id',
@@ -67,9 +92,6 @@ class NewsController extends Controller
    */
     public function create(Request $request)
     {
-        if (!$request->isMethod('POST')) {
-            return Super::jsonResponse(false, 405, 'Method Not Allowed', [], $this->empty_object);
-        }
         // Validation area
         $validator = Validator::make($request->all(), [
             'title' => 'required',
@@ -97,13 +119,13 @@ class NewsController extends Controller
   * cases :  News edited successfully - Failed to edit news
   * return : if news edited return news object after edit - if failed add news return empty object
   * /news/edit
+  * example : localhost:8000/api/news/edit?news_id=8&title=naguib mahfouz&short_desc=Egyptian writer who won the 1988 Nobel Prize for Literature.
+     &text=He is regarded as one of the first contemporary writers of Arabic literature, along with Tawfiq el-Hakim, to explore themes of existentialism.
+    &date=1911-12-11
   */
 
     public function edit(Request $request)
     {
-        if (!$request->isMethod('PUT')) {
-            return Super::jsonResponse(false, 405, 'Method Not Allowed', [], $this->empty_object);
-        }
         // Validation area
         $validator = Validator::make($request->all(), [
             'news_id' => 'required|exists:news,id',
@@ -121,7 +143,7 @@ class NewsController extends Controller
             return Super::jsonResponse(false, 404, 'Failed to update news', [], $this->empty_object);
         }
         // return this response if edit news successfully
-        return Super::jsonResponse(true, 200, 'News updated successfully', [], $edit_news);
+        return Super::jsonResponse(true, 200, 'News updated successfully', [], $news);
     }
 
     /*
@@ -130,12 +152,10 @@ class NewsController extends Controller
      * cases :  News deleted successfully - Failed to delete news
      * return : empty object
      * /news/delete
+     * example : localhost:8000/api/news/delete?news_id=8
      */
     public function delete(Request $request)
     {
-        if (!$request->isMethod('DELETE')) {
-            return Super::jsonResponse(false, 405, 'Method Not Allowed', [], $this->empty_object);
-        }
         // Validation area
         $validator = Validator::make($request->all(), [
             'news_id' => 'required|exists:news,id',

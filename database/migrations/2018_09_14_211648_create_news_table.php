@@ -17,8 +17,8 @@ class CreateNewsTable extends Migration
             $table->increments('id');
             $table->date('date');
             $table->string('title');
-            $table->string('short_desc');
-            $table->text('text');
+            $table->text('short_desc');
+            $table->longText('text');
             $table->timestamps();
         });
     }

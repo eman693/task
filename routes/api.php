@@ -22,7 +22,7 @@ Route::group(['namespace' => 'Api'], function () {
         'uses' => 'NewsController@index',
         'as' => 'news.list'
     ]);
-    Route::post('/news/show', [
+    Route::get('/news/show', [
         'uses' => 'NewsController@show',
         'as' => 'news.show'
     ]);
